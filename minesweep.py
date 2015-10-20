@@ -96,7 +96,7 @@ class field:
 				self.dead = True
 				plt.imshow(image)
 				plt.show()
-					
+
 
 	def flag(self,mouse):
 		mouse.click(self.center[1],self.center[0],2)
@@ -204,13 +204,13 @@ class minefield:
 			return True
 		else:
 			return False
-			
+
 	def rand(self):
 		while True:
 			randField = self.fields[random.randint(0,self.shape[1])-1][random.randint(0,self.shape[0])-1]
 			if not randField.clicked:
 				return randField
-				
+
 	def display(self, permutation=False, p=0, hl=[]):
 		#self.scrapeAll()
 		for y in self.fields:
@@ -225,7 +225,7 @@ class minefield:
 					sys.stdout.write(str(x.mines))
 			sys.stdout.flush()
 			print ''
-			
+
 	def near(self, field):
 		#return all fields near entered field
 		near = []
@@ -249,8 +249,8 @@ class minefield:
 		if y != maxy and x != maxx:
 			near.append(self.fields[y+1][x+1])
 		return near
-		
-			
+
+
 	def bruteForce(self, fields):
 		if self.v: print'Starting brute force attempt'
 		if self.v: print 'Border: '+str(len(fields))
@@ -289,9 +289,9 @@ class minefield:
 				i.prob = float(i.prob)/len(correct)
 		else:
 			if self.v: print 'Error - No correct solutions found'
-			self.alive = False
+			return False
 		return True
-				
+
 	def checkGuess(self,near,mined):
 		ans = True
 		for i in near:
@@ -301,9 +301,9 @@ class minefield:
 					mines += 1
 			if i.mines != mines:
 				ans = False
-				break 
+				break
 		return ans
-	
+
 	def checkProbs(self):
 		found = False
 		lowest , low = 1,1
@@ -335,21 +335,34 @@ class minefield:
 			else:
 				self.incomplete.append(i)
 		self.scrapeAll()
-		
+
 	def group(self):
+		"""
 		border = list(self.border)
 		groups = [[border[0]]]
 		border.remove(border[0])
 		for i in groups:
-			for ii in groups:
+			for ii in i:
 				for field in border:
 					if field in self.near(ii):
-						group[i].append(field)
+						groups[groups.index(i)].append(field)
 						border.remove(field)
 			if len(border) == 0:
 				return groups
 			else:
 				groups.append([border[0]])
+		"""
+		groups = []
+		border = list(self.border)
+		while len(border) != 0:
+			groups.append([border[0]])
+			border.remove(border[0])
+			for grp in groups:
+				for field in grp:
+					for i in set(border).intersection(self.near(field)):
+						grp.append(i)
+						border.remove(i)
+		return groups
 
 def status(percent):
 	sys.stdout.write('[')
@@ -375,7 +388,7 @@ def top5Colours(img):
 			except:
 				break
 		return ans
-		
+
 def findIndex(array,item):
 	x,y = -1,-1
 	for i in array:
@@ -421,15 +434,6 @@ def solve(template=cv2.imread("images/field.png"),debug=False,speed=False,mouse=
 			if not click:
 				break
 		"""
-		rand = main.rand()
-		rand.click(main.mouse)
-		if rand.dead == True:
-			main.alive = False
-		elif rand.mines == 0:
-			main.scrapeAll()
-		else:
-			main.incomplete.append(rand)
-		"""
 		if main.bruteForce(main.border):
 			if v: print 'done'
 			main.checkProbs()
@@ -444,13 +448,26 @@ def solve(template=cv2.imread("images/field.png"),debug=False,speed=False,mouse=
 				main.scrapeAll()
 			else:
 				main.incomplete.append(rand)
+		"""
+		if v: print 'Looking for groups'
 		groups = main.group()
 		rand = True
 		if v: print str(len(groups))+' groups found'
 		for group in groups:
 			if main.bruteForce(group): rand = False
 		if rand:
-			
+			if v: print 'Will take too long'
+			if v: print 'Clicking randomly'
+			rand = main.rand()
+			rand.click(main.mouse)
+			if rand.dead == True:
+				main.alive = False
+			elif rand.mines == 0:
+				main.scrapeAll()
+			else:
+				main.incomplete.append(rand)
+		else:
+			main.checkProbs()
 	if debug:
 		print 'incomplete: '+str(len(main.incomplete))
 	#for i in main.incomplete:
@@ -461,7 +478,7 @@ def solve(template=cv2.imread("images/field.png"),debug=False,speed=False,mouse=
 		return main
 	else:
 		return main.alive
-		
+
 def speed(number=100,size=99):
 	#time.sleep(5)
 	sys.stdout.write('Starting in 5 seconds')
